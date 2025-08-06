@@ -1,145 +1,170 @@
-import { useEffect, useRef } from "react";
-import * as pdfjs from "pdfjs-dist";
-import pdfWorker from "pdfjs-dist/build//pdf.worker.mjs?url";
-import { TextLayerBuilder } from "pdfjs-dist/web/pdf_viewer.mjs";
+import "./styles/pdf-viewer.scss";
+import pdfFile from "../../assets/compressed.tracemonkey-pldi-09.pdf";
+import { useEffect, useRef, useState } from "react";
+// Step 1: Import pdfjs-dist and configure worker
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/build/pdf.worker?url";
 
-// 🔽 引入样式（可选，但推荐）
-import "pdfjs-dist/web/pdf_viewer.css";
-import pdfFile from "../../assets/file-example_PDF_1MB.pdf";
-
-pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+// Configure the worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 function PDFViewer() {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const textLayerRef = useRef<HTMLDivElement | null>(null);
+  // Step 2: Add state for PDF document and loading status
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedText, setSelectedText] = useState<string>("");
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // 🔽 保存当前的 renderTask 和 textLayerBuilder，用于取消
-  const renderTaskRef = useRef<pdfjs.RenderTask | null>(null);
-  const textLayerBuilderRef = useRef<TextLayerBuilder | null>(null);
-
-  // 🔽 处理文本选中事件
+  // Handle text selection
   const handleTextSelection = () => {
     const selection = window.getSelection();
-    if (selection && selection.toString().trim()) {
-      const selectedText = selection.toString();
-      console.log("选中的文本:", selectedText);
+    if (selection && selection.toString().trim() !== "") {
+      setSelectedText(selection.toString());
+      console.log("Selected text:", selection.toString());
     }
   };
 
-  const renderPdf = async () => {
-    try {
-      const loadingTask = pdfjs.getDocument(pdfFile);
-      const pdf = await loadingTask.promise;
-      const page = await pdf.getPage(1);
-
-      const scale = 1.5;
-      const viewport = page.getViewport({ scale });
-      console.log("> viewport");
-      console.log(viewport);
-
-      const canvas = canvasRef.current!;
-      const context = canvas.getContext("2d")!;
-
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      canvas.style.width = `${viewport.width}px`;
-      canvas.style.height = `${viewport.height}px`;
-
-      // ✅ 1. 取消前一个渲染任务（关键！）
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-        renderTaskRef.current = null;
-      }
-
-      // ✅ 2. 渲染 Canvas
-      const renderContext = {
-        canvas,
-        canvasContext: context,
-        viewport,
-      };
-
-      const renderTask = page.render(renderContext);
-      renderTaskRef.current = renderTask; // 保存引用
-
-      try {
-        await renderTask.promise; // 等待完成
-      } catch (error: any) {
-        if (error.name === "RenderingCancelledException") {
-          console.log("Rendering was cancelled");
-          return; // 被取消是正常行为，不要抛错
-        }
-        throw error;
-      }
-
-      // ✅ 3. 渲染 TextLayer
-      const textLayerDiv = textLayerRef.current!;
-      textLayerDiv.style.width = `${viewport.width}px`;
-      textLayerDiv.style.height = `${viewport.height}px`;
-
-      // 清空旧的文本层
-      textLayerDiv.innerHTML = "";
-      // 取消前一个文本层渲染（如果有）
-      if (textLayerBuilderRef.current) {
-        textLayerBuilderRef.current.cancel();
-        textLayerBuilderRef.current = null;
-      }
-
-      const textLayerBuilder = new TextLayerBuilder({
-        pdfPage: page,
-        onAppend: () => {},
-      });
-
-      textLayerBuilderRef.current = textLayerBuilder;
-
-      await textLayerBuilder.render({
-        viewport,
-      });
-
-      if (textLayerBuilder.div) {
-        textLayerDiv.appendChild(textLayerBuilder.div);
-      }
-    } catch (error: any) {
-      if (error.name !== "RenderingCancelledException") {
-        console.error("Error rendering PDF:", error);
-      }
-    }
-  };
-
+  // Add selection event listener
   useEffect(() => {
-    renderPdf();
+    const handleSelectionChange = () => {
+      handleTextSelection();
+    };
 
-    // 🔽 清理函数：组件卸载时取消所有任务
+    document.addEventListener("selectionchange", handleSelectionChange);
     return () => {
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
-      if (textLayerBuilderRef.current) {
-        textLayerBuilderRef.current.cancel();
-      }
+      document.removeEventListener("selectionchange", handleSelectionChange);
     };
   }, []);
 
+  // Step 2: Load PDF when component mounts
+  useEffect(() => {
+    const loadPDF = async () => {
+      try {
+        setLoading(true);
+
+        // Load the PDF document
+        const loadingTask = pdfjsLib.getDocument(pdfFile);
+        const pdf = await loadingTask.promise;
+
+        setPdfDoc(pdf);
+        console.log("PDF loaded successfully, pages:", pdf.numPages);
+
+        // Render all pages
+        await renderAllPages(pdf);
+      } catch (err: any) {
+        setError(err.message);
+        console.error("Error loading PDF:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadPDF();
+  }, []);
+
+  // Step 2: Function to render all pages with text layers
+  const renderAllPages = async (pdf: pdfjsLib.PDFDocumentProxy) => {
+    if (!containerRef.current) return;
+
+    // Clear container
+    containerRef.current.innerHTML = "";
+
+    // Render each page
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      try {
+        const page = await pdf.getPage(pageNum);
+
+        // Set up viewport - use same scale for both canvas and text layer
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale: scale });
+
+        // Create page container
+        const pageContainer = document.createElement("div");
+        pageContainer.className = "page-container";
+        pageContainer.style.position = "relative";
+        pageContainer.style.display = "block";
+        pageContainer.style.margin = "16px auto";
+        pageContainer.style.width = `${viewport.width}px`;
+        pageContainer.style.height = `${viewport.height}px`;
+        pageContainer.style.boxShadow = "0 0 4px 0 #dedede";
+
+        // Create canvas for this page
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d")!;
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        canvas.style.position = "absolute";
+        canvas.style.left = "0";
+        canvas.style.top = "0";
+
+        // Create text layer container
+        const textLayerDiv = document.createElement("div");
+        textLayerDiv.className = "text-layer selectable";
+        textLayerDiv.style.position = "absolute";
+        textLayerDiv.style.left = "0";
+        textLayerDiv.style.top = "0";
+        textLayerDiv.style.right = "0";
+        textLayerDiv.style.bottom = "0";
+        textLayerDiv.style.overflow = "hidden";
+        textLayerDiv.style.opacity = "1";
+        textLayerDiv.style.lineHeight = "1.0";
+        textLayerDiv.style.setProperty(
+          "--total-scale-factor",
+          scale.toString()
+        );
+
+        // Render page
+        const renderContext = {
+          canvas: canvas,
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        await page.render(renderContext).promise;
+
+        // Render text layer using same viewport
+        const textContent = await page.getTextContent();
+        const textLayer = new pdfjsLib.TextLayer({
+          textContentSource: textContent,
+          container: textLayerDiv,
+          viewport: viewport,
+        });
+
+        await textLayer.render();
+
+        // Assemble the page
+        pageContainer.appendChild(canvas);
+        pageContainer.appendChild(textLayerDiv);
+        containerRef.current.appendChild(pageContainer);
+
+        console.log(`Page ${pageNum} rendered successfully with text layer`);
+      } catch (err) {
+        console.error(`Error rendering page ${pageNum}:`, err);
+      }
+    }
+  };
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      <canvas ref={canvasRef} />
-      <div
-        ref={textLayerRef}
-        className="textLayer" // pdf_viewer.css 会处理样式
-        onMouseUp={handleTextSelection}
-        onKeyUp={handleTextSelection}
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          width: 0,
-          height: 0,
-          overflow: "hidden",
-          pointerEvents: "auto", // 允许指针事件以便文本选中
-          userSelect: "text", // 允许文本选中
-        }}
-      />
+    <div className="pdf-viewer">
+      <div className="title-bar">
+        {loading && <p>Loading PDF...</p>}
+        {error && <p style={{ color: "red" }}>Error: {error}</p>}
+      </div>
+
+      <div className="body-container">
+        <div className="pdf-container">
+          <div className="canvas-container" ref={containerRef} style={{}} />
+        </div>
+        <div className="annotation-container">
+          <div className="selected-text-display">
+            <h4>Selected Text:</h4>
+            <p>{selectedText || "No text selected"}</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+
 export default PDFViewer;
