@@ -82,6 +82,7 @@ function PDFViewer() {
         // Create page container
         const pageContainer = document.createElement("div");
         pageContainer.className = "page-container";
+        pageContainer.setAttribute("data-page-number", pageNum.toString());
         pageContainer.style.position = "relative";
         pageContainer.style.display = "block";
         pageContainer.style.margin = "16px auto";
