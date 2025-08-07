@@ -1,0 +1,153 @@
+.annotation-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  user-select: none;
+
+  .toolbar-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    h4 {
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #495057;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .tool-buttons {
+      display: flex;
+      gap: 8px;
+
+      .tool-button {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        padding: 8px 12px;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        background-color: #ffffff;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 80px;
+
+        &:hover {
+          border-color: #007bff;
+          background-color: #f8f9fa;
+        }
+
+        &.active {
+          border-color: #007bff;
+          background-color: #e7f3ff;
+          box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .tool-icon {
+          font-size: 18px;
+          line-height: 1;
+        }
+
+        .tool-label {
+          font-size: 10px;
+          font-weight: 500;
+          color: #6c757d;
+          text-align: center;
+        }
+
+        &.active .tool-label {
+          color: #007bff;
+        }
+      }
+    }
+
+    .color-palette {
+      display: flex;
+      gap: 6px;
+
+      .color-button {
+        width: 32px;
+        height: 32px;
+        border: 2px solid #dee2e6;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+
+        &:hover {
+          transform: scale(1.1);
+          border-color: #6c757d;
+        }
+
+        &.active {
+          border-color: #343a40;
+          border-width: 3px;
+          transform: scale(1.15);
+          box-shadow: 0 0 0 2px rgba(52, 58, 64, 0.25);
+        }
+
+        &::after {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background-color: inherit;
+          opacity: 0.8;
+        }
+      }
+    }
+  }
+
+  .toolbar-info {
+    margin-left: auto;
+    padding: 8px 12px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    font-size: 12px;
+
+    .current-selection {
+      color: #495057;
+
+      strong {
+        color: #212529;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .annotation-toolbar {
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .toolbar-section .tool-buttons .tool-button {
+      min-width: 60px;
+      padding: 6px 8px;
+
+      .tool-icon {
+        font-size: 16px;
+      }
+
+      .tool-label {
+        font-size: 9px;
+      }
+    }
+
+    .toolbar-info {
+      flex-basis: 100%;
+      margin-left: 0;
+      text-align: center;
+    }
+  }
+}
