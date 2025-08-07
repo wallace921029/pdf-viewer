@@ -184,11 +184,8 @@
         cursor: crosshair;
 
         .text-layer {
-            cursor: crosshair !important;
-
-            span {
-                cursor: crosshair !important;
-            }
+            user-select: none !important;
+            pointer-events: none !important;
         }
     }
 

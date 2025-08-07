@@ -38,6 +38,15 @@ function PDFViewer() {
   >([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Rectangle drawing state
+  const [isDrawingRect, setIsDrawingRect] = useState(false);
+  const [rectStart, setRectStart] = useState<
+    { x: number; y: number; pageNumber: number } | null
+  >(null);
+  const [rectPreview, setRectPreview] = useState<
+    { x: number; y: number; width: number; height: number; pageNumber: number } | null
+  >(null);
+
   // Helper function to render annotations for a page with provided data
   const renderAnnotationsForPageWithData = useCallback(
     (
@@ -868,6 +877,135 @@ function PDFViewer() {
     },
     [renderAnnotationsForPage]
   );
+
+  // Rectangle drawing mouse handlers
+  useEffect(() => {
+    if (selectedTool !== 'rectangle') return;
+    
+    function getPageAndLayer(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      const annotationLayer = target.closest('.annotation-layer') as HTMLElement;
+      const pageContainer = annotationLayer?.closest('.page-container');
+      const pageNumber = pageContainer?.getAttribute('data-page-number');
+      return { annotationLayer, pageNumber: pageNumber ? parseInt(pageNumber) : null };
+    }
+
+    function handleMouseDown(e: MouseEvent) {
+      if (e.button !== 0) return;
+      const { annotationLayer, pageNumber } = getPageAndLayer(e);
+      if (annotationLayer && pageNumber) {
+        const rect = annotationLayer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setIsDrawingRect(true);
+        setRectStart({ x, y, pageNumber });
+        setRectPreview({ x, y, width: 0, height: 0, pageNumber });
+      }
+    }
+
+    function handleMouseMove(e: MouseEvent) {
+      if (!isDrawingRect || !rectStart) return;
+      const { annotationLayer } = getPageAndLayer(e);
+      if (annotationLayer) {
+        const rect = annotationLayer.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        setRectPreview({
+          x: Math.min(rectStart.x, x),
+          y: Math.min(rectStart.y, y),
+          width: Math.abs(x - rectStart.x),
+          height: Math.abs(y - rectStart.y),
+          pageNumber: rectStart.pageNumber
+        });
+      }
+    }
+
+    function handleMouseUp(e: MouseEvent) {
+      if (!isDrawingRect || !rectStart || !rectPreview) return;
+      setIsDrawingRect(false);
+      setRectStart(null);
+      setRectPreview(null);
+      if (rectPreview.width > 5 && rectPreview.height > 5) {
+        const newAnnotation = {
+          id: `${Date.now()}-${Math.random()}`,
+          pageNumber: rectPreview.pageNumber,
+          type: "rectangle" as const,
+          x: rectPreview.x,
+          y: rectPreview.y,
+          width: rectPreview.width,
+          height: rectPreview.height,
+          content: '',
+          comment: '',
+          color: selectedColor
+        };
+        setAnnotations(prev => {
+          const updated = [...prev, newAnnotation];
+          // Immediately re-render annotation layer for this page
+          setTimeout(() => {
+            const pageContainer = document.querySelector(
+              `[data-page-number="${rectPreview.pageNumber}"]`
+            );
+            if (pageContainer) {
+              const annotationLayer = pageContainer.querySelector(
+                ".annotation-layer"
+              ) as HTMLElement;
+              if (annotationLayer) {
+                renderAnnotationsForPageWithData(
+                  rectPreview.pageNumber,
+                  annotationLayer,
+                  updated
+                );
+              }
+            }
+          }, 50);
+          return updated;
+        });
+      }
+    }
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [selectedTool, isDrawingRect, rectStart, rectPreview, selectedColor, renderAnnotationsForPageWithData]);
+
+  // Render rectangle preview
+  useEffect(() => {
+    if (!rectPreview) return;
+    const pageContainer = document.querySelector(`[data-page-number="${rectPreview.pageNumber}"]`);
+    const annotationLayer = pageContainer?.querySelector('.annotation-layer') as HTMLElement;
+    if (!annotationLayer) return;
+    let svg = annotationLayer.querySelector('.temp-rect-preview') as SVGSVGElement;
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.classList.add('temp-rect-preview');
+      svg.style.position = 'absolute';
+      svg.style.pointerEvents = 'none';
+      annotationLayer.appendChild(svg);
+    }
+    svg.style.left = `${rectPreview.x}px`;
+    svg.style.top = `${rectPreview.y}px`;
+    svg.style.width = `${rectPreview.width}px`;
+    svg.style.height = `${rectPreview.height}px`;
+    svg.innerHTML = `<rect x="0" y="0" width="${rectPreview.width}" height="${rectPreview.height}" fill="none" stroke="${selectedColor}" stroke-width="2" stroke-dasharray="5,5" />`;
+    return () => { if (svg) svg.remove(); };
+  }, [rectPreview, selectedColor]);
+
+  // Toggle pointer-events for annotation-layer based on tool
+  useEffect(() => {
+    const annotationLayers = document.querySelectorAll('.annotation-layer');
+    annotationLayers.forEach(layer => {
+      if (selectedTool === 'rectangle') {
+        (layer as HTMLElement).style.pointerEvents = 'auto';
+      } else {
+        (layer as HTMLElement).style.pointerEvents = 'none';
+      }
+    });
+  }, [selectedTool, annotations]);
 
   return (
     <div className="pdf-viewer">
