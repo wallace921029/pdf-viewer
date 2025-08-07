@@ -13,6 +13,10 @@
         z-index: 1;
     }
 
+    .tool-bar {
+        flex: 0 0 auto;
+    }
+
     .body-container {
         flex: 1;
         overflow: hidden;
@@ -112,10 +116,10 @@
 
                         .annotation-comment {
                             margin-top: 6px;
-                            
+
                             textarea {
                                 font-family: inherit;
-                                
+
                                 &:focus {
                                     outline: none;
                                     border-color: #007bff;
@@ -147,7 +151,7 @@
     &.brush-mode {
         .text-layer {
             cursor: crosshair !important;
-            
+
             span {
                 cursor: crosshair !important;
             }
@@ -156,10 +160,10 @@
 
     &.rectangle-mode {
         cursor: crosshair;
-        
+
         .text-layer {
             cursor: crosshair !important;
-            
+
             span {
                 cursor: crosshair !important;
             }
@@ -183,7 +187,7 @@
             z-index: 2;
             user-select: text; // Enable text selection
             pointer-events: auto; // Enable pointer events
-            
+
             // Define CSS custom properties that PDF.js expects
             --total-scale-factor: 1;
             --scale-round-x: 1px;
@@ -277,7 +281,7 @@
                 font-size: 12px;
                 color: #333;
                 border: 2px solid #fff;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
                 pointer-events: auto; // Notes should be clickable
 
                 &:hover {
@@ -289,12 +293,12 @@
             .annotation-drawing {
                 position: absolute;
                 pointer-events: none;
-                
+
                 svg {
                     width: 100%;
                     height: 100%;
                 }
-                
+
                 path {
                     fill: none;
                     stroke: #ff4444;
