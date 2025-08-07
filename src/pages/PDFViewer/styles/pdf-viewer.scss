@@ -84,6 +84,7 @@
                         .annotation-header {
                             display: flex;
                             justify-content: space-between;
+                            align-items: center;
                             font-size: 11px;
                             margin-bottom: 4px;
 
@@ -99,6 +100,27 @@
                             .annotation-page {
                                 color: #666;
                                 font-size: 10px;
+                            }
+                            
+                            .annotation-delete-card-btn {
+                                background: rgba(255, 0, 0, 0.8);
+                                color: white;
+                                border: none;
+                                border-radius: 50%;
+                                width: 18px;
+                                height: 18px;
+                                font-size: 12px;
+                                cursor: pointer;
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                margin-left: auto;
+                                transition: background-color 0.2s;
+                                
+                                &:hover {
+                                    background: rgba(255, 0, 0, 1);
+                                    transform: scale(1.1);
+                                }
                             }
                         }
 
@@ -250,6 +272,26 @@
                     &:hover {
                         filter: brightness(1.2);
                     }
+                }
+                
+                path {
+                    pointer-events: auto;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        filter: brightness(1.2);
+                    }
+                }
+
+                // Delete button styling for SVG annotations
+                .annotation-delete-btn {
+                    opacity: 0;
+                    transition: opacity 0.2s ease;
+                }
+
+                &:hover .annotation-delete-btn {
+                    opacity: 1;
                 }
             }
 

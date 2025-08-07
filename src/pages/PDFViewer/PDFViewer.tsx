@@ -121,6 +121,43 @@ function PDFViewer() {
               });
 
               svg.appendChild(path);
+          
+          // Add delete button for path-based highlights
+          const deleteButton = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          deleteButton.setAttribute("cx", (annotation.width - 10).toString());
+          deleteButton.setAttribute("cy", "10");
+          deleteButton.setAttribute("r", "8");
+          deleteButton.setAttribute("fill", "rgba(255, 0, 0, 0.8)");
+          deleteButton.setAttribute("stroke", "white");
+          deleteButton.setAttribute("stroke-width", "1");
+          deleteButton.style.cursor = "pointer";
+          deleteButton.style.pointerEvents = "auto";
+          deleteButton.classList.add("annotation-delete-btn");
+
+          const deleteX = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          deleteX.setAttribute("x", (annotation.width - 10).toString());
+          deleteX.setAttribute("y", "14");
+          deleteX.setAttribute("text-anchor", "middle");
+          deleteX.setAttribute("font-family", "Arial, sans-serif");
+          deleteX.setAttribute("font-size", "10");
+          deleteX.setAttribute("fill", "white");
+          deleteX.setAttribute("font-weight", "bold");
+          deleteX.textContent = "×";
+          deleteX.style.cursor = "pointer";
+          deleteX.style.pointerEvents = "auto";
+          deleteX.classList.add("annotation-delete-btn");
+
+          // Add delete functionality
+          const handleDelete = (e: Event) => {
+            e.stopPropagation();
+            removeAnnotation(annotation.id);
+          };
+
+          deleteButton.addEventListener("click", handleDelete);
+          deleteX.addEventListener("click", handleDelete);
+
+          svg.appendChild(deleteButton);
+          svg.appendChild(deleteX);
             } else {
               // Create SVG rectangle for single-line highlights
               const rect = document.createElementNS(
@@ -171,6 +208,43 @@ function PDFViewer() {
               });
 
               svg.appendChild(rect);
+              
+              // Add delete button for rectangle-based highlights
+              const deleteButton = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+              deleteButton.setAttribute("cx", (annotation.width - 10).toString());
+              deleteButton.setAttribute("cy", "10");
+              deleteButton.setAttribute("r", "8");
+              deleteButton.setAttribute("fill", "rgba(255, 0, 0, 0.8)");
+              deleteButton.setAttribute("stroke", "white");
+              deleteButton.setAttribute("stroke-width", "1");
+              deleteButton.style.cursor = "pointer";
+              deleteButton.style.pointerEvents = "auto";
+              deleteButton.classList.add("annotation-delete-btn");
+
+              const deleteX = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              deleteX.setAttribute("x", (annotation.width - 10).toString());
+              deleteX.setAttribute("y", "14");
+              deleteX.setAttribute("text-anchor", "middle");
+              deleteX.setAttribute("font-family", "Arial, sans-serif");
+              deleteX.setAttribute("font-size", "10");
+              deleteX.setAttribute("fill", "white");
+              deleteX.setAttribute("font-weight", "bold");
+              deleteX.textContent = "×";
+              deleteX.style.cursor = "pointer";
+              deleteX.style.pointerEvents = "auto";
+              deleteX.classList.add("annotation-delete-btn");
+
+              // Add delete functionality
+              const handleDelete = (e: Event) => {
+                e.stopPropagation();
+                removeAnnotation(annotation.id);
+              };
+
+              deleteButton.addEventListener("click", handleDelete);
+              deleteX.addEventListener("click", handleDelete);
+
+              svg.appendChild(deleteButton);
+              svg.appendChild(deleteX);
             }
           } else if (annotation.type === "rectangle") {
             // Create SVG rectangle for rectangle annotations
@@ -206,6 +280,43 @@ function PDFViewer() {
             });
 
             svg.appendChild(rect);
+            
+            // Add delete button for rectangle annotations
+            const deleteButton = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            deleteButton.setAttribute("cx", (annotation.width - 10).toString());
+            deleteButton.setAttribute("cy", "10");
+            deleteButton.setAttribute("r", "8");
+            deleteButton.setAttribute("fill", "rgba(255, 0, 0, 0.8)");
+            deleteButton.setAttribute("stroke", "white");
+            deleteButton.setAttribute("stroke-width", "1");
+            deleteButton.style.cursor = "pointer";
+            deleteButton.style.pointerEvents = "auto";
+            deleteButton.classList.add("annotation-delete-btn");
+
+            const deleteX = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            deleteX.setAttribute("x", (annotation.width - 10).toString());
+            deleteX.setAttribute("y", "14");
+            deleteX.setAttribute("text-anchor", "middle");
+            deleteX.setAttribute("font-family", "Arial, sans-serif");
+            deleteX.setAttribute("font-size", "10");
+            deleteX.setAttribute("fill", "white");
+            deleteX.setAttribute("font-weight", "bold");
+            deleteX.textContent = "×";
+            deleteX.style.cursor = "pointer";
+            deleteX.style.pointerEvents = "auto";
+            deleteX.classList.add("annotation-delete-btn");
+
+            // Add delete functionality
+            const handleDelete = (e: Event) => {
+              e.stopPropagation();
+              removeAnnotation(annotation.id);
+            };
+
+            deleteButton.addEventListener("click", handleDelete);
+            deleteX.addEventListener("click", handleDelete);
+
+            svg.appendChild(deleteButton);
+            svg.appendChild(deleteX);
           }
 
           annotationLayer.appendChild(svg);
@@ -522,6 +633,35 @@ function PDFViewer() {
     );
   };
 
+  // Remove annotation
+  const removeAnnotation = useCallback((id: string) => {
+    setAnnotations((prev) => {
+      const annotation = prev.find(ann => ann.id === id);
+      if (annotation) {
+        // Re-render the page to remove the annotation element
+        setTimeout(() => {
+          const pageContainer = document.querySelector(
+            `[data-page-number="${annotation.pageNumber}"]`
+          );
+          if (pageContainer) {
+            const annotationLayer = pageContainer.querySelector(
+              ".annotation-layer"
+            ) as HTMLElement;
+            if (annotationLayer) {
+              const updatedAnnotations = prev.filter(ann => ann.id !== id);
+              renderAnnotationsForPageWithData(
+                annotation.pageNumber,
+                annotationLayer,
+                updatedAnnotations
+              );
+            }
+          }
+        }, 50);
+      }
+      return prev.filter((ann) => ann.id !== id);
+    });
+  }, [renderAnnotationsForPageWithData]);
+
   // Scroll to annotation on page
   const scrollToAnnotation = (annotation: (typeof annotations)[0]) => {
     const pageContainer = document.querySelector(
@@ -616,7 +756,7 @@ function PDFViewer() {
 
     loadPDF();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // renderAllPages is stable, no need to include it
+  }, [removeAnnotation]); // renderAllPages is stable, no need to include it
 
   // Step 2: Function to render all pages with text layers
   const renderAllPages = useCallback(
@@ -779,6 +919,30 @@ function PDFViewer() {
                     <span className="annotation-page">
                       Page {annotation.pageNumber}
                     </span>
+                    <button
+                      className="annotation-delete-card-btn"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent card click
+                        removeAnnotation(annotation.id);
+                      }}
+                      title="Delete annotation"
+                      style={{
+                        background: 'rgba(255, 0, 0, 0.8)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginLeft: 'auto'
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                   {annotation.content && (
                     <div className="annotation-content">
