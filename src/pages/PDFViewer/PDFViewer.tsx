@@ -14,6 +14,17 @@ function PDFViewer() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedText, setSelectedText] = useState<string>("");
+  const [annotations, setAnnotations] = useState<Array<{
+    id: string;
+    pageNumber: number;
+    type: 'highlight' | 'note' | 'drawing';
+    x: number;
+    y: number;
+    width?: number;
+    height?: number;
+    content?: string;
+    color?: string;
+  }>>([]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Handle text selection
@@ -23,6 +34,31 @@ function PDFViewer() {
       setSelectedText(selection.toString());
       console.log("Selected text:", selection.toString());
     }
+  };
+
+  // Add annotation
+  const addAnnotation = (pageNumber: number, x: number, y: number, type: 'highlight' | 'note' | 'drawing') => {
+    const newAnnotation = {
+      id: Date.now().toString(),
+      pageNumber,
+      type,
+      x,
+      y,
+      content: type === 'note' ? 'New note' : '',
+      color: type === 'highlight' ? '#ffff00' : '#ffc107'
+    };
+    
+    setAnnotations(prev => [...prev, newAnnotation]);
+    console.log('Added annotation:', newAnnotation);
+  };
+
+  // Handle double click on annotation layer to add note
+  const handleAnnotationLayerDoubleClick = (event: MouseEvent, pageNumber: number) => {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const y = event.clientY - rect.top;
+    
+    addAnnotation(pageNumber, x, y, 'note');
   };
 
   // Add selection event listener
@@ -110,10 +146,46 @@ function PDFViewer() {
         textLayerDiv.style.overflow = "hidden";
         textLayerDiv.style.opacity = "1";
         textLayerDiv.style.lineHeight = "1.0";
+        textLayerDiv.style.zIndex = "2";
         textLayerDiv.style.setProperty(
           "--total-scale-factor",
           scale.toString()
         );
+
+        // Create annotation layer container
+        const annotationLayerDiv = document.createElement("div");
+        annotationLayerDiv.className = "annotation-layer";
+        annotationLayerDiv.setAttribute("data-page-number", pageNum.toString());
+        annotationLayerDiv.style.position = "absolute";
+        annotationLayerDiv.style.left = "0";
+        annotationLayerDiv.style.top = "0";
+        annotationLayerDiv.style.right = "0";
+        annotationLayerDiv.style.bottom = "0";
+        annotationLayerDiv.style.pointerEvents = "none";
+        annotationLayerDiv.style.zIndex = "3";
+
+        // Add double-click event listener to text layer for annotation creation
+        textLayerDiv.addEventListener("dblclick", (event) => {
+          // Only create annotation if not clicking on text spans
+          if ((event.target as HTMLElement).tagName !== 'SPAN') {
+            handleAnnotationLayerDoubleClick(event, pageNum);
+          }
+        });
+
+        // Render existing annotations for this page
+        const pageAnnotations = annotations.filter(ann => ann.pageNumber === pageNum);
+        pageAnnotations.forEach(annotation => {
+          if (annotation.type === 'note') {
+            const noteElement = document.createElement("div");
+            noteElement.className = "annotation-note";
+            noteElement.style.left = `${annotation.x}px`;
+            noteElement.style.top = `${annotation.y}px`;
+            noteElement.style.pointerEvents = "auto"; // Enable pointer events for note elements
+            noteElement.textContent = "📝";
+            noteElement.title = annotation.content || "Note";
+            annotationLayerDiv.appendChild(noteElement);
+          }
+        });
 
         // Render page
         const renderContext = {
@@ -137,6 +209,7 @@ function PDFViewer() {
         // Assemble the page
         pageContainer.appendChild(canvas);
         pageContainer.appendChild(textLayerDiv);
+        pageContainer.appendChild(annotationLayerDiv);
         containerRef.current.appendChild(pageContainer);
 
         console.log(`Page ${pageNum} rendered successfully with text layer`);
@@ -161,6 +234,26 @@ function PDFViewer() {
           <div className="selected-text-display">
             <h4>Selected Text:</h4>
             <p>{selectedText || "No text selected"}</p>
+          </div>
+          
+          <div className="annotations-display">
+            <h4>Annotations ({annotations.length}):</h4>
+            <div className="annotations-list">
+              {annotations.map(annotation => (
+                <div key={annotation.id} className="annotation-item">
+                  <div className="annotation-header">
+                    <span className="annotation-type">{annotation.type}</span>
+                    <span className="annotation-page">Page {annotation.pageNumber}</span>
+                  </div>
+                  {annotation.content && (
+                    <div className="annotation-content">{annotation.content}</div>
+                  )}
+                </div>
+              ))}
+              {annotations.length === 0 && (
+                <p className="no-annotations">No annotations yet. Double-click on any page to add a note.</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
