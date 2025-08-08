@@ -8,7 +8,7 @@ import AnnotationToolbar from "../../components/AnnotationToolbar";
 import type { ToolType, ColorType } from "../../components/AnnotationToolbar";
 import { renderAnnotationsForPageWithData } from "./renderAnnotationsForPageWithData";
 import type { AnnotationType } from "./types";
-
+import AnnotationCard from "./AnnotationCard";
 // Configure the worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
@@ -816,70 +816,12 @@ function PDFViewer() {
             <h4>Annotations ({annotations.length}):</h4>
             <div className="annotations-list">
               {annotations.map((annotation) => (
-                <div
-                  key={annotation.id}
-                  className="annotation-item"
-                  data-card-id={annotation.id}
-                  onClick={() => scrollToAnnotation(annotation)}
-                  style={{ cursor: "pointer" }}
-                >
-                  <div className="annotation-header">
-                    <span className="annotation-type">{annotation.type}</span>
-                    <span className="annotation-page">
-                      Page {annotation.pageNumber}
-                    </span>
-                    <button
-                      className="annotation-delete-card-btn"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevent card click
-                        removeAnnotation(annotation.id);
-                      }}
-                      title="Delete annotation"
-                      style={{
-                        background: "rgba(255, 0, 0, 0.8)",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "50%",
-                        width: "18px",
-                        height: "18px",
-                        fontSize: "12px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        marginLeft: "auto",
-                      }}
-                    >
-                      ×
-                    </button>
-                  </div>
-                  {annotation.content && (
-                    <div className="annotation-content">
-                      "{annotation.content}"
-                    </div>
-                  )}
-                  <div className="annotation-comment">
-                    <textarea
-                      placeholder="Add a comment..."
-                      value={annotation.comment || ""}
-                      onChange={(e) => {
-                        e.stopPropagation(); // Prevent card click
-                        updateAnnotationComment(annotation.id, e.target.value);
-                      }}
-                      onClick={(e) => e.stopPropagation()} // Prevent card click when focusing textarea
-                      rows={2}
-                      style={{
-                        width: "100%",
-                        fontSize: "11px",
-                        padding: "4px",
-                        border: "1px solid #ddd",
-                        borderRadius: "3px",
-                        resize: "none",
-                        marginTop: "4px",
-                      }}
-                    />
-                  </div>
-                </div>
+                <AnnotationCard
+                  annotation={annotation}
+                  scrollToAnnotation={scrollToAnnotation}
+                  removeAnnotation={removeAnnotation}
+                  updateAnnotationComment={updateAnnotationComment}
+                />
               ))}
               {annotations.length === 0 && (
                 <p className="no-annotations">
@@ -892,7 +834,9 @@ function PDFViewer() {
 
           <div className="actions">
             <button className="action-btn cancel-btn">Cancel</button>
-            <button className="action-btn save-btn" onClick={handleSave}>Save</button>
+            <button className="action-btn save-btn" onClick={handleSave}>
+              Save
+            </button>
           </div>
         </div>
       </div>
