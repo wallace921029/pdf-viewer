@@ -16,7 +16,7 @@ function PDFViewer() {
   // Remove annotation (stable callback)
   const removeAnnotation = useCallback((id: string) => {
     setAnnotations((prev) => {
-      const annotation = prev.find(ann => ann.id === id);
+      const annotation = prev.find((ann) => ann.id === id);
       if (annotation) {
         // Re-render the page to remove the annotation element
         setTimeout(() => {
@@ -28,7 +28,7 @@ function PDFViewer() {
               ".annotation-layer"
             ) as HTMLElement;
             if (annotationLayer) {
-              const updatedAnnotations = prev.filter(ann => ann.id !== id);
+              const updatedAnnotations = prev.filter((ann) => ann.id !== id);
               renderAnnotationsForPageWithData(
                 annotation.pageNumber,
                 annotationLayer,
@@ -52,18 +52,50 @@ function PDFViewer() {
   const [selectedTool, setSelectedTool] = useState<ToolType>("cursor");
   const [selectedColor, setSelectedColor] = useState<ColorType>("#FFFF00");
 
-  const [annotations, setAnnotations] = useState<AnnotationType[]>([]);
+  const [annotations, setAnnotations] = useState<AnnotationType[]>([
+    {
+      id: "1754623246144-0.4475432192452905",
+      pageNumber: 1,
+      type: "highlight",
+      x: 475.5234375,
+      y: 504.1328125,
+      width: 358.9285888671875,
+      height: 29.96875,
+      content: " productivity\napplications",
+      comment: "用词不准确",
+      color: "rgba(255, 255, 0, 0.4)",
+      pathData:
+        "M 292.7947998046875 0 L 358.9285888671875 0 L 358.9285888671875 14.96875 L 66.7435302734375 14.96875 L 66.7435302734375 29.96875 L 0 29.96875 L 0 15 L 292.7947998046875 15 Z",
+    },
+    {
+      id: "1754623271644-0.8872989495648059",
+      pageNumber: 2,
+      type: "rectangle",
+      x: 468.90625,
+      y: 98,
+      width: 372,
+      height: 102,
+      content: "",
+      comment: "代码无法跑通",
+      color: "#FF0000",
+    },
+  ]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Rectangle drawing state
   const [isDrawingRect, setIsDrawingRect] = useState(false);
-  const [rectStart, setRectStart] = useState<
-    { x: number; y: number; pageNumber: number } | null
-  >(null);
-  const [rectPreview, setRectPreview] = useState<
-    { x: number; y: number; width: number; height: number; pageNumber: number } | null
-  >(null);
-
+  const [rectStart, setRectStart] = useState<{
+    x: number;
+    y: number;
+    pageNumber: number;
+  } | null>(null);
+  const [rectPreview, setRectPreview] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    pageNumber: number;
+  } | null>(null);
 
   // Remove annotation (move up for hook order)
 
@@ -353,7 +385,7 @@ function PDFViewer() {
       selectedTool,
       selectedColor,
       annotations,
-      removeAnnotation
+      removeAnnotation,
     ]
   );
 
@@ -376,7 +408,6 @@ function PDFViewer() {
       prev.map((ann) => (ann.id === id ? { ...ann, comment } : ann))
     );
   };
-
 
   // Scroll to annotation on page
   const scrollToAnnotation = (annotation: (typeof annotations)[0]) => {
@@ -587,14 +618,19 @@ function PDFViewer() {
 
   // Rectangle drawing mouse handlers
   useEffect(() => {
-    if (selectedTool !== 'rectangle') return;
-    
+    if (selectedTool !== "rectangle") return;
+
     function getPageAndLayer(e: MouseEvent) {
       const target = e.target as HTMLElement;
-      const annotationLayer = target.closest('.annotation-layer') as HTMLElement;
-      const pageContainer = annotationLayer?.closest('.page-container');
-      const pageNumber = pageContainer?.getAttribute('data-page-number');
-      return { annotationLayer, pageNumber: pageNumber ? parseInt(pageNumber) : null };
+      const annotationLayer = target.closest(
+        ".annotation-layer"
+      ) as HTMLElement;
+      const pageContainer = annotationLayer?.closest(".page-container");
+      const pageNumber = pageContainer?.getAttribute("data-page-number");
+      return {
+        annotationLayer,
+        pageNumber: pageNumber ? parseInt(pageNumber) : null,
+      };
     }
 
     function handleMouseDown(e: MouseEvent) {
@@ -622,7 +658,7 @@ function PDFViewer() {
           y: Math.min(rectStart.y, y),
           width: Math.abs(x - rectStart.x),
           height: Math.abs(y - rectStart.y),
-          pageNumber: rectStart.pageNumber
+          pageNumber: rectStart.pageNumber,
         });
       }
     }
@@ -641,11 +677,11 @@ function PDFViewer() {
           y: rectPreview.y,
           width: rectPreview.width,
           height: rectPreview.height,
-          content: '',
-          comment: '',
-          color: selectedColor
+          content: "",
+          comment: "",
+          color: selectedColor,
         };
-        setAnnotations(prev => {
+        setAnnotations((prev) => {
           const updated = [...prev, newAnnotation];
           // Immediately re-render annotation layer for this page
           setTimeout(() => {
@@ -671,28 +707,41 @@ function PDFViewer() {
       }
     }
 
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
     return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [selectedTool, isDrawingRect, rectStart, rectPreview, selectedColor, removeAnnotation]);
+  }, [
+    selectedTool,
+    isDrawingRect,
+    rectStart,
+    rectPreview,
+    selectedColor,
+    removeAnnotation,
+  ]);
 
   // Render rectangle preview
   useEffect(() => {
     if (!rectPreview) return;
-    const pageContainer = document.querySelector(`[data-page-number="${rectPreview.pageNumber}"]`);
-    const annotationLayer = pageContainer?.querySelector('.annotation-layer') as HTMLElement;
+    const pageContainer = document.querySelector(
+      `[data-page-number="${rectPreview.pageNumber}"]`
+    );
+    const annotationLayer = pageContainer?.querySelector(
+      ".annotation-layer"
+    ) as HTMLElement;
     if (!annotationLayer) return;
-    let svg = annotationLayer.querySelector('.temp-rect-preview') as SVGSVGElement;
+    let svg = annotationLayer.querySelector(
+      ".temp-rect-preview"
+    ) as SVGSVGElement;
     if (!svg) {
-      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.classList.add('temp-rect-preview');
-      svg.style.position = 'absolute';
-      svg.style.pointerEvents = 'none';
+      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("temp-rect-preview");
+      svg.style.position = "absolute";
+      svg.style.pointerEvents = "none";
       annotationLayer.appendChild(svg);
     }
     svg.style.left = `${rectPreview.x}px`;
@@ -700,24 +749,37 @@ function PDFViewer() {
     svg.style.width = `${rectPreview.width}px`;
     svg.style.height = `${rectPreview.height}px`;
     svg.innerHTML = `<rect x="0" y="0" width="${rectPreview.width}" height="${rectPreview.height}" fill="none" stroke="${selectedColor}" stroke-width="2" stroke-dasharray="5,5" />`;
-    return () => { if (svg) svg.remove(); };
+    return () => {
+      if (svg) svg.remove();
+    };
   }, [rectPreview, selectedColor]);
 
   // Toggle pointer-events for annotation-layer based on tool
   useEffect(() => {
-    const annotationLayers = document.querySelectorAll('.annotation-layer');
-    annotationLayers.forEach(layer => {
-      if (selectedTool === 'rectangle') {
-        (layer as HTMLElement).style.pointerEvents = 'auto';
+    const annotationLayers = document.querySelectorAll(".annotation-layer");
+    annotationLayers.forEach((layer) => {
+      if (selectedTool === "rectangle") {
+        (layer as HTMLElement).style.pointerEvents = "auto";
       } else {
-        (layer as HTMLElement).style.pointerEvents = 'none';
+        (layer as HTMLElement).style.pointerEvents = "none";
       }
     });
   }, [selectedTool, annotations]);
 
+  const handleSave = () => {
+    // log the annotations to console
+    console.log("Saving annotations:", annotations);
+  };
+
   return (
     <div className="pdf-viewer">
       <div className="title-bar">
+        <div className="report-title">双缝干涉实验报告</div>
+        <div className="student-info">
+          <span>萨克斯牛顿</span>
+          <span>三年2班</span>
+          <span>2025年8月12日</span>
+        </div>
         {loading && <p>Loading PDF...</p>}
         {error && <p style={{ color: "red" }}>Error: {error}</p>}
       </div>
@@ -743,6 +805,7 @@ function PDFViewer() {
         >
           <div className="canvas-container" ref={containerRef} style={{}} />
         </div>
+
         <div className="annotation-container">
           <div className="selected-text-display">
             <h4>Selected Text:</h4>
@@ -773,18 +836,18 @@ function PDFViewer() {
                       }}
                       title="Delete annotation"
                       style={{
-                        background: 'rgba(255, 0, 0, 0.8)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '18px',
-                        height: '18px',
-                        fontSize: '12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginLeft: 'auto'
+                        background: "rgba(255, 0, 0, 0.8)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "50%",
+                        width: "18px",
+                        height: "18px",
+                        fontSize: "12px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginLeft: "auto",
                       }}
                     >
                       ×
@@ -825,6 +888,11 @@ function PDFViewer() {
                 </p>
               )}
             </div>
+          </div>
+
+          <div className="actions">
+            <button>Cancel</button>
+            <button onClick={handleSave}>Save</button>
           </div>
         </div>
       </div>
