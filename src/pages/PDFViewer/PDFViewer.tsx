@@ -891,8 +891,8 @@ function PDFViewer() {
           </div>
 
           <div className="actions">
-            <button>Cancel</button>
-            <button onClick={handleSave}>Save</button>
+            <button className="action-btn cancel-btn">Cancel</button>
+            <button className="action-btn save-btn" onClick={handleSave}>Save</button>
           </div>
         </div>
       </div>
