@@ -817,6 +817,7 @@ function PDFViewer() {
             <div className="annotations-list">
               {annotations.map((annotation) => (
                 <AnnotationCard
+                  key={annotation.id}
                   annotation={annotation}
                   scrollToAnnotation={scrollToAnnotation}
                   removeAnnotation={removeAnnotation}
